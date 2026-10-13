@@ -1,0 +1,34 @@
+BFME II for macOS
+=================
+
+This app runs YOUR OWN copy of The Battle for Middle-earth II (and,
+optionally, The Rise of the Witch-king) on macOS through a bundled Wine
+runtime. It contains no game files.
+
+Install
+  1. Drag "BFME II" into Applications.
+  2. The app is not notarized by Apple. The first time, open Terminal and run:
+         xattr -dr com.apple.quarantine "/Applications/BFME II.app"
+     (or right-click the app > Open, then confirm; on macOS 15+ go to
+     System Settings > Privacy & Security > "Open Anyway").
+  3. Open the app. On Apple Silicon it will offer to install Rosetta 2.
+
+First run
+  The app asks where your game files are:
+    - an existing installation folder (copied from a Windows PC: the folder
+      containing lotrbfme2.exe), or
+    - a Windows installer (AutoRun.exe / setup.exe), or
+    - a disc image (.iso).
+  Then it asks for resolution and window mode. Your CD key is only requested
+  if the installer did not store one.
+
+  Copy-protected retail discs (SecuROM) do not run under Wine. Use a
+  DRM-free installation (e.g. a copy patched to 1.06 / 2.01 on Windows).
+
+Later
+  Open the app to play. For settings, run in Terminal:
+      "/Applications/BFME II.app/Contents/MacOS/BFME2" --menu
+  Game data, saves and the Windows drive live in
+      ~/Library/Application Support/BFME2-macOS
+  Logs:
+      ~/Library/Logs/BFME2-macOS

@@ -1,0 +1,75 @@
+name: Build macOS DMG
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      wine_flavor:
+        description: "Gcenx Wine flavor to bundle (staging | devel | stable)"
+        default: staging
+
+permissions:
+  contents: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck -s bash macos/launcher.sh scripts/*.sh
+      - run: python3 -c "import plistlib; plistlib.load(open('macos/Info.plist','rb'))"
+
+  build:
+    needs: lint
+    runs-on: macos-14
+    timeout-minutes: 45
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      WINE_FLAVOR: ${{ inputs.wine_flavor || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build app bundle
+        run: scripts/build-app.sh build
+
+      - name: Install Rosetta 2
+        run: softwareupdate --install-rosetta --agree-to-license || true
+
+      - name: Smoke test (create prefix, write registry and Options.ini)
+        timeout-minutes: 15
+        env:
+          BFME2_HEADLESS: "1"
+          BFME2_SUPPORT_DIR: ${{ runner.temp }}/bfme2-support
+          BFME2_LOG_DIR: ${{ runner.temp }}/bfme2-logs
+        run: '"build/BFME II.app/Contents/MacOS/BFME2" --selftest'
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-logs
+          path: ${{ runner.temp }}/bfme2-logs
+
+      - name: Build DMG
+        run: scripts/make-dmg.sh build build/BFME-II-macOS.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BFME-II-macOS-dmg
+          path: |
+            build/BFME-II-macOS.dmg
+            build/BFME-II-macOS.dmg.sha256
+          compression-level: 0
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/BFME-II-macOS.dmg
+            build/BFME-II-macOS.dmg.sha256
